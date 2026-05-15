@@ -272,12 +272,6 @@ export class LeadsService {
       nombre: lead.fullName,
       email: lead.email,
       telefono: lead.phone,
-      empresa: lead.company ?? '',
-      puesto: lead.jobTitle ?? '',
-      estado: lead.status,
-      origen: lead.source,
-      campania: lead.campaign?.name ?? '',
-      asignado_a: lead.assignedTo?.name ?? '',
       fecha_registro: lead.registeredAt.toISOString(),
     }));
 
@@ -286,12 +280,6 @@ export class LeadsService {
       { key: 'nombre', label: 'Nombre' },
       { key: 'email', label: 'Correo' },
       { key: 'telefono', label: 'Telefono' },
-      { key: 'empresa', label: 'Empresa' },
-      { key: 'puesto', label: 'Puesto' },
-      { key: 'estado', label: 'Estado' },
-      { key: 'origen', label: 'Origen' },
-      { key: 'campania', label: 'Campaña' },
-      { key: 'asignado_a', label: 'Asignado a' },
       { key: 'fecha_registro', label: 'Fecha de registro' },
     ]);
 
