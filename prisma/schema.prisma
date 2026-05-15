@@ -1,0 +1,192 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==========================
+// ENUMS
+// ==========================
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  REJECTED
+  ARCHIVED
+}
+
+enum LeadSource {
+  LANDING_PAGE
+  FACEBOOK
+  INSTAGRAM
+  GOOGLE
+  WHATSAPP
+  REFERRAL
+  OTHER
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  VIEWER
+}
+
+enum ExportFormat {
+  CSV
+  EXCEL
+}
+
+// ==========================
+// MODELS
+// ==========================
+
+model Lead {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Datos principales del lead
+  firstName String  @db.VarChar(100)
+  lastName  String? @db.VarChar(100)
+  fullName  String  @db.VarChar(200)
+  email     String  @db.VarChar(180)
+  phone     String  @db.VarChar(30)
+
+  // Datos opcionales útiles para una landing
+  company  String? @db.VarChar(150)
+  jobTitle String? @db.VarChar(120)
+  message  String? @db.Text
+
+  // Clasificación comercial
+  status LeadStatus @default(NEW)
+  source LeadSource @default(LANDING_PAGE)
+
+  // Información técnica de captura
+  ipAddress String? @db.VarChar(60)
+  userAgent String? @db.Text
+  referrer  String? @db.Text
+
+  // Campos flexibles para guardar datos extras del formulario
+  metadata Json?
+
+  // Relación con campaña
+  campaignId String?   @db.Uuid
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  // Usuario admin asignado
+  assignedToId String?    @db.Uuid
+  assignedTo   AdminUser? @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  // Fechas
+  registeredAt DateTime  @default(now()) @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
+  deletedAt    DateTime? @db.Timestamptz(6)
+
+  // Relaciones
+  notes LeadNote[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@index([source])
+  @@index([campaignId])
+  @@index([assignedToId])
+  @@index([registeredAt])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+model Campaign {
+  id String @id @default(uuid()) @db.Uuid
+
+  name        String  @db.VarChar(150)
+  slug        String  @unique @db.VarChar(160)
+  description String? @db.Text
+
+  isActive Boolean @default(true)
+
+  startsAt DateTime? @db.Timestamptz(6)
+  endsAt   DateTime? @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  leads Lead[]
+
+  @@index([isActive])
+  @@index([startsAt])
+  @@index([endsAt])
+  @@map("campaigns")
+}
+
+model AdminUser {
+  id String @id @default(uuid()) @db.Uuid
+
+  name         String    @db.VarChar(150)
+  email        String    @unique @db.VarChar(180)
+  passwordHash String    @db.Text
+  role         AdminRole @default(ADMIN)
+  isActive     Boolean   @default(true)
+
+  lastLoginAt DateTime? @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+
+  assignedLeads Lead[]       @relation("AssignedLeads")
+  notes         LeadNote[]
+  exports       LeadExport[]
+
+  @@index([role])
+  @@index([isActive])
+  @@map("admin_users")
+}
+
+model LeadNote {
+  id String @id @default(uuid()) @db.Uuid
+
+  leadId String @db.Uuid
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  adminUserId String?    @db.Uuid
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  note String @db.Text
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([leadId])
+  @@index([adminUserId])
+  @@index([createdAt])
+  @@map("lead_notes")
+}
+
+model LeadExport {
+  id String @id @default(uuid()) @db.Uuid
+
+  fileName String       @db.VarChar(255)
+  format   ExportFormat
+
+  totalRows Int @default(0)
+
+  // Filtros usados al exportar, por ejemplo:
+  // status, campaignId, dateFrom, dateTo, source, etc.
+  filters Json?
+
+  exportedById String?    @db.Uuid
+  exportedBy   AdminUser? @relation(fields: [exportedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([format])
+  @@index([exportedById])
+  @@index([createdAt])
+  @@map("lead_exports")
+}
