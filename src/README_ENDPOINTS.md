@@ -58,4 +58,4 @@ GET /api/leads/export/csv
 
 ## Panel Administrativo
 
-http://localhost:3001/admin
+http://localhost:3000/admin
